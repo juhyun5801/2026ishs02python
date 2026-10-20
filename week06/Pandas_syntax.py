@@ -1,7 +1,15 @@
-import numpy as np
 import pandas as pd
-df = pd.read_csv('bike.csv')
+import seaborn as sns
 
-df.rename({'registered':'registered_user','casual':'casual_user','temp':'temperature', 'atemp':'apparent_temperature'}, axis=1, inplace=True)
-print(df.info())
-print(df.describe(include='str'))  # 수치형 칼럼값이 아닌 문자열 칼럼이 낼 수 있는 요약 통계량
+df = sns.load_dataset('penguins')
+# print(df.head())
+# print(df.tail())
+# print(df.describe())
+# print(df.info())
+
+print(df.query('species.str.contains("hi")'))
+print(df['species'].value_counts())
+
+bl = int(input("Enter the amount of bill_length: "))
+spcs = input("Enter the species: ")
+print(df.query('bill_length_mm >= @bl and species == @spcs'))
