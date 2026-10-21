@@ -1,0 +1,27 @@
+name: Assemble festival transfer ZIP
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_id:
+        description: Prepared draft release ID
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  assemble:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Verify release files and assemble transfer ZIP
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ inputs.release_id }}
+          REPOSITORY: ${{ github.repository }}
+        run: python3 festival_raibit/scripts/assemble-release.py
