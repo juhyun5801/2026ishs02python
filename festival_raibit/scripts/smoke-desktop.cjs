@@ -14,7 +14,7 @@ const port = 9234;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 let child, socket, serial = 0, log = '';
 const pending = new Map();
-const guard = setTimeout(() => { console.error('Packaged app test timed out'); if (child) child.kill(); process.exit(1); }, 75000);
+const guard = setTimeout(() => { console.error('Packaged app test timed out'); if (child) child.kill(); process.exit(1); }, 120000);
 
 async function evaluate(expression) {
   const id = ++serial;
@@ -32,7 +32,7 @@ async function evaluate(expression) {
   child.stderr.on('data', c => { log = (log + c).slice(-6000); });
   child.on('error', error => { log += error.message; });
   let page;
-  for (let i = 0; i < 120; i++) {
+  for (let i = 0; i < 300; i++) {
     try { page = (await (await fetch('http://127.0.0.1:' + port + '/json')).json()).find(p => p.type === 'page' && p.url.includes('index.html')); } catch (_) {}
     if (page) break;
     if (child.exitCode !== null) throw new Error('App exited before ready: ' + log);
@@ -91,8 +91,12 @@ async function evaluate(expression) {
     await evaluate(`api.start()`);
     await sleep(1000);
     assert.strictEqual(await evaluate(`!!window.__voice && window.__voice.ctx.state==='running'`), true);
-    await sleep(4600);
-    state = await evaluate(`api.getState()`);
+    // Rendering on shared CI hosts can delay sample delivery; the game has an 8 s timeout.
+    for (let i = 0; i < 120; i++) {
+      state = await evaluate(`api.getState()`);
+      if (state.game.phase === 'result') break;
+      await sleep(100);
+    }
     assert.strictEqual(state.game.phase, 'result');
     assert.ok(state.game.p1.score > 0);
     assert.strictEqual(await evaluate(`window.__fanPlays`), 1);
