@@ -26,7 +26,8 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self,*args):
         return None
 def fetch(path,file):
-    request=urllib.request.Request(BASE+path,headers=dict(HEADERS,Accept='application/octet-stream'))
+    accept='application/octet-stream' if path.startswith('/releases/assets/') else 'application/vnd.github+json'
+    request=urllib.request.Request(BASE+path,headers=dict(HEADERS,Accept=accept))
     try:
         response=urllib.request.build_opener(NoRedirect).open(request,timeout=90)
     except urllib.error.HTTPError as error:
