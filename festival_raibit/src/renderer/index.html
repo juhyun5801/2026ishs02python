@@ -238,6 +238,22 @@
 
       <div style="display: flex; flex-direction: column; gap: 14px; min-height: 0; overflow-y: auto">
         <div class="card" style="flex: none; border-color: #FFB21E">
+          <h2>게이지 효과음 · 화면</h2>
+          <label style="display: flex; align-items: center; gap: 10px; font-size: 21px; cursor: pointer">
+            <input type="checkbox" id="s-sound" style="width: 22px; height: 22px; accent-color: #FFB21E; margin: 0">
+            측정 기계음 · 결과 팡파르
+          </label>
+          <label style="display: flex; align-items: center; gap: 12px; font-size: 21px">
+            음량 <input type="range" id="s-volume" min="0" max="100" step="1" style="flex: 1; min-width: 0; accent-color: #FFB21E">
+            <output id="s-volume-value" for="s-volume" style="min-width: 48px; text-align: right"></output>
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; font-size: 21px; cursor: pointer">
+            <input type="checkbox" id="s-awake" style="width: 22px; height: 22px; accent-color: #FFB21E; margin: 0">
+            화면 꺼짐 방지
+          </label>
+          <div class="hint">점수가 높을수록 기계음이 높아지고, 최종 점수가 나오면 “빰빠빰” 팡파르가 납니다. 변경 즉시 저장됩니다.</div>
+        </div>
+        <div class="card" style="flex: none; border-color: #FFB21E">
           <h2>자동 보정</h2>
           <div class="hint" style="font-size: 17px; color: #B8A29B">이 노트북·이 장소의 잡음을 재서 채널·전원·영점·여유·고역을 고르고, 최대 힘으로 기준 힘도 잡습니다. 결과를 보고 적용할지 정합니다.</div>
           <div style="display: flex; gap: 10px">
@@ -271,7 +287,7 @@
         </div>
         <div class="card" style="flex: none">
           <h2>설정 파일</h2>
-          <div class="hint">점수·신호·이름 받기 설정을 파일로 옮깁니다. 영점과 포트 설정은 옮기지 않으니, 가져온 뒤 "잡음만" 보정을 하세요.</div>
+          <div class="hint">점수·신호·이름·효과음 설정을 파일로 옮깁니다. 영점과 포트 설정은 옮기지 않으니, 가져온 뒤 "잡음만" 보정을 하세요.</div>
           <div style="display: flex; gap: 10px">
             <button type="button" id="btn-export" class="btn">내보내기…</button>
             <button type="button" id="btn-import" class="btn">가져오기…</button>
@@ -320,6 +336,7 @@
 
 </div>
 <script src="segments.js"></script>
+<script src="gauge-sound.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

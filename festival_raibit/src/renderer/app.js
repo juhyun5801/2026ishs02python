@@ -11,6 +11,8 @@
 
   var state = null;
   var adminOpen = false;
+  var gaugeSound = new window.GaugeSound();
+  var renderedMainKey = '';
 
   function esc(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
@@ -96,8 +98,8 @@
     var h = 'height: 78px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; white-space: nowrap';
     if (phase === 'measuring') {
       var p = player(P1_COLOR, g.p1.samples, g.samplesNeeded, g.p1.score);
-      return '<div style="' + h + '"><div style="font-size: 30px; color: #E9DAD5">측정 ' + p.samples + ' / ' + g.samplesNeeded + ' · 최고 ' + p.best + '</div>' +
-        '<div style="width: 520px; height: 10px; border-radius: 5px; background: #2E1B17; overflow: hidden"><div style="' + p.bar + '"></div></div></div>';
+      return '<div style="' + h + '"><div id="measure-status" style="font-size: 30px; color: #E9DAD5">측정 ' + p.samples + ' / ' + g.samplesNeeded + ' · 최고 ' + p.best + '</div>' +
+        '<div style="width: 520px; height: 10px; border-radius: 5px; background: #2E1B17; overflow: hidden"><div id="measure-progress" style="' + p.bar + '"></div></div></div>';
     }
     if (phase === 'result') {
       var inner;
@@ -124,6 +126,16 @@
   function renderMain() {
     var g = state.game;
     var phase = g.phase;
+    var key = JSON.stringify([phase, state.name, phase === 'result' ? state.result : null, state.hall]);
+    if (key === renderedMainKey) {
+      var status = $('measure-status'), progress = $('measure-progress');
+      if (phase === 'measuring' && status && progress) {
+        status.textContent = '측정 ' + g.p1.samples + ' / ' + g.samplesNeeded + ' · 최고 ' + g.p1.score;
+        progress.style.width = Math.max(0, Math.min(100, g.p1.samples / g.samplesNeeded * 100)) + '%';
+      }
+      return;
+    }
+    renderedMainKey = key;
     var res = resultInfo(phase === 'result' ? state.result : null);
     var nm = state.name || {};
     var who = function (n) { return n ? esc(n) + '님 · ' : ''; };
@@ -153,6 +165,7 @@
       gauge('gauge-r') +
       '</div>';
     drawn = { p1: -1 }; // 새로 만든 칸이라 다시 그리기
+    drawnLevel = -1;
     drawPlayers();
   }
 
@@ -163,6 +176,8 @@
   var shown = { p1: 0 };
   var drawn = { p1: -1 };
   var lastFrame = 0;
+  var playerFrame = null;
+  var drawnLevel = -1;
 
   function targetOf(k) {
     var p = state.game[k];
@@ -176,11 +191,17 @@
       drawn[k] = v;
       var d = $('score-digits'), gl = $('gauge-l'), gr = $('gauge-r');
       if (d) d.innerHTML = Seg.display(Seg.pad(v), 110, AMBER);
-      if (gl) { var gh = gaugeHtml(v); gl.innerHTML = gh; if (gr) gr.innerHTML = gh; }
+      var level = levelOf(v);
+      if (gl && level !== drawnLevel) {
+        drawnLevel = level;
+        var gh = gaugeHtml(v); gl.innerHTML = gh; if (gr) gr.innerHTML = gh;
+      }
     });
   }
 
   function frame(t) {
+    playerFrame = null;
+    if (!state || adminOpen || document.hidden) { lastFrame = 0; return; }
     var dt = lastFrame ? Math.min(100, t - lastFrame) : 16;
     lastFrame = t;
     if (state) {
@@ -188,12 +209,42 @@
       ['p1'].forEach(function (k) {
         var target = targetOf(k);
         shown[k] = Math.abs(target - shown[k]) < 1 ? target : shown[k] + (target - shown[k]) * a;
+        if (Math.abs(target - shown[k]) < 1) shown[k] = target;
       });
       drawPlayers();
     }
-    requestAnimationFrame(frame);
+    syncSound();
+    if (Math.abs(targetOf('p1') - shown.p1) >= 1) schedulePlayers();
+    else lastFrame = 0;
   }
-  requestAnimationFrame(frame);
+
+  function schedulePlayers() {
+    if (playerFrame === null && state && !adminOpen && !document.hidden && shown.p1 !== targetOf('p1')) playerFrame = requestAnimationFrame(frame);
+  }
+
+  function stopPlayers() {
+    if (playerFrame !== null) cancelAnimationFrame(playerFrame);
+    playerFrame = null;
+    lastFrame = 0;
+  }
+
+  function syncSound() {
+    if (!state) return;
+    var sb = state.ports && state.ports.spikerbox;
+    gaugeSound.update({
+      phase: state.game.phase,
+      active: state.game.phase === 'measuring' && !!(sb && sb.connected) && !document.hidden,
+      score: adminOpen ? state.game.p1.current : shown.p1,
+      enabled: state.settings.gaugeSound,
+      volume: state.settings.soundVolume,
+    });
+  }
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { stopPlayers(); gaugeSound.stop(); stopCelebrate(); }
+    else render();
+  });
+  window.addEventListener('pagehide', function () { stopPlayers(); gaugeSound.stop(); });
 
   // ───────────────────────── 관리자 화면 (Admin.dc.html renderVals) ─────────────────────────
   var MEDAL = ['#FFC83D', '#D3DAE2', '#D88A4E'];
@@ -370,8 +421,10 @@
 
   function render() {
     if (!state) return;
-    renderMain();
+    if (document.hidden) { gaugeSound.stop(); return; }
+    if (!document.hidden && !adminOpen) { renderMain(); schedulePlayers(); }
     if (adminOpen) { if (adminPage === 2) renderDiag(); else if (adminPage === 3) renderSettings(); else renderAdmin(); }
+    syncSound();
     renderNameModal();
     checkCelebrate();
   }
@@ -498,6 +551,8 @@
 
   function renderDiag() {
     var d = state.diag;
+    var set = state.settings || {};
+    var nPts = set.score && Array.isArray(set.score.points) ? set.score.points.length : 0;
     $('diag-version').textContent = state.version ? 'v' + state.version : '';
     if (!d) return;
     var sig = d.signal, ser = d.serial, ps = state.ports || {}, sb = ps.spikerbox || {}, st = ps.start || {};
@@ -627,6 +682,9 @@
 
   function openAdmin() {
     adminOpen = true;
+    stopPlayers();
+    syncSound();
+    stopCelebrate();
     releaseSimKeys();
     $('main').hidden = true;
     showPage(1);
@@ -641,6 +699,7 @@
     $('main').hidden = false;
     if (adminPage === 2) api.setDiag(false);
     adminPage = 1;
+    render();
   }
 
   function recordsMsg(text, ok) {
@@ -783,6 +842,10 @@
     var set = state.settings, s0 = set.score || state.scoreDefault;
     fillSignal();
     $('s-askname').checked = !!set.askName;
+    $('s-sound').checked = set.gaugeSound !== false;
+    $('s-volume').value = set.soundVolume;
+    $('s-volume-value').textContent = set.soundVolume + '%';
+    $('s-awake').checked = set.keepDisplayAwake !== false;
     sc = { ref: s0.ref, top: s0.top, curve: s0.curve, points: copyPoints(s0.points) };
     $('sc-ref').value = sc.ref;
     $('sc-top').value = sc.top;
@@ -950,6 +1013,9 @@
     var next = {
       score: { ref: sc.ref, top: sc.top, curve: sc.curve, points: sc.points },
       askName: $('s-askname').checked,
+      gaugeSound: $('s-sound').checked,
+      soundVolume: Number($('s-volume').value),
+      keepDisplayAwake: $('s-awake').checked,
       emg: {
         channel: parseInt($('s-channel').value, 10), mainsHz: parseInt($('s-mains').value, 10), notch: $('s-notch').checked,
         restRms: num('s-rest', e.restRms), margin: num('s-margin', e.margin), highpassHz: num('s-hp', e.highpassHz),
@@ -1094,6 +1160,19 @@
   });
 
   $('btn-s-save').addEventListener('click', saveAllSettings);
+  $('s-volume').addEventListener('input', function () { $('s-volume-value').textContent = this.value + '%'; });
+  // 운영 옵션은 별도 저장 버튼 없이 적용한다. 슬라이더는 드래그가 끝날 때 한 번만 저장한다.
+  [['s-sound', 'gaugeSound'], ['s-volume', 'soundVolume'], ['s-awake', 'keepDisplayAwake']].forEach(function (field) {
+    $(field[0]).addEventListener('change', function () {
+      var next = {};
+      next[field[1]] = this.type === 'checkbox' ? this.checked : Number(this.value);
+      api.saveSettings(next).then(function (s) {
+        state.settings = s;
+        syncSound();
+        settingsMsg('s-msg', state.saveError || '저장했습니다.', !state.saveError);
+      });
+    });
+  });
   $('btn-s-zero').addEventListener('click', function () { api.zeroEmg(); });
   $('btn-open-settings').addEventListener('click', function () { showPage(3); });
   $('btn-page3').addEventListener('click', function () { showPage(3); });
@@ -1182,7 +1261,7 @@
   function checkCelebrate() {
     var r = state.result, g = state.game;
     var on = g.phase === 'result' && r && r.rank && r.id && state.settings.askName;
-    if (on && r.id !== celebratedId) {
+    if (on && r.id !== celebratedId && !adminOpen && !document.hidden) {
       celebratedId = r.id;
       startCelebrate((r.name ? r.name + '님 ' : '') + r.rank + '위 축하드립니다!');
     }
@@ -1300,6 +1379,11 @@
   window.addEventListener('blur', releaseSimKeys);
 
   // ───────────────────────── 상태 수신 ─────────────────────────
-  api.onState(function (s) { state = s; render(); });
+  api.onState(function (s) {
+    var starting = s.game.phase === 'measuring' && (!state || state.game.phase !== 'measuring');
+    state = s;
+    if (starting) shown.p1 = 0;
+    render();
+  });
   api.getState().then(function (s) { if (!state) { state = s; render(); } });
 })();

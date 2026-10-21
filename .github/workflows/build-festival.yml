@@ -1,0 +1,55 @@
+name: Build festival desktop app
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mac:
+    name: macOS ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: festival_raibit
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: festival_raibit/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run logic and sound tests
+        run: npm test
+      - name: Package Mac app
+        run: node scripts/build-mac.cjs --${{ matrix.arch }}
+      - name: Check native dependencies and included fanfare
+        run: |
+          node -e "const hid=require('node-hid'); const serial=require('serialport'); console.log('Native modules loaded:', process.platform, process.arch); if(!hid.HID || !serial.SerialPort)process.exit(1)"
+          shasum -a 256 dist/*.dmg dist/*-mac.zip > dist/SHA256SUMS-${{ matrix.arch }}.txt
+      - name: Save Mac installers
+        uses: actions/upload-artifact@v6
+        with:
+          name: raibitScoreboard-mac-${{ matrix.arch }}
+          path: |
+            festival_raibit/dist/*.dmg
+            festival_raibit/dist/*-mac.zip
+            festival_raibit/dist/SHA256SUMS-*.txt
+          if-no-files-found: error
+          retention-days: 14

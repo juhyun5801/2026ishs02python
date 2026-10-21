@@ -1,7 +1,7 @@
 {
   "name": "raibit-scoreboard",
   "productName": "raibitScoreboard",
-  "version": "2.1.10",
+  "version": "2.1.14",
   "description": "raibitScoreboard - 근전도 기록 측정",
   "main": "src/main/main.js",
   "private": true,
@@ -10,7 +10,9 @@
     "sim": "electron . --sim",
     "test": "node test/game.test.js",
     "build:win": "electron-builder --win portable nsis --x64",
-    "build:mac": "electron-builder --mac dmg --arm64 --x64",
+    "build:mac": "node scripts/build-mac.cjs",
+    "build:mac:arm64": "node scripts/build-mac.cjs --arm64",
+    "build:mac:x64": "node scripts/build-mac.cjs --x64",
     "build": "electron-builder --win --mac"
   },
   "build": {

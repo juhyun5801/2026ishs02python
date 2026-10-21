@@ -22,6 +22,7 @@ const { EmgWindow, EmgFilter, strengthOf, RestMeter } = require('../src/main/emg
 const { unwrapReport, buildCommand, deviceKey, pickDevices, HidDecoder, INIT_COMMANDS, defaultRate } = require('../src/main/hid');
 const { Diag, buckets } = require('../src/main/diag');
 const { Recorder, HEADER } = require('../src/main/recorder');
+const { GaugeSound } = require('../src/renderer/gauge-sound');
 
 let passed = 0;
 function test(name, fn) {
@@ -293,7 +294,7 @@ test('v2.0.x 파일 옮기기: 명예의 전당 이름은 살리고, 나머지 �
 console.log('저장');
 
 const DEFAULTS = {
-  score: DEFAULT_SCORE, askName: true,
+  score: DEFAULT_SCORE, askName: true, gaugeSound: true, soundVolume: 35, keepDisplayAwake: true,
   emg: { channel: 1, restRms: 0, filtered: true, margin: 1.5, mainsHz: 60, notch: true, highpassHz: 80 }, portRoles: {}, fullscreen: true,
 };
 
@@ -866,6 +867,123 @@ test('녹화: 100 ms 구간마다 CSV 한 줄, 원시값은 .raw 에 이어 쓰�
   const raw = fs.readFileSync(r.lastFile.replace(/\.csv$/, '.raw'));
   assert.deepStrictEqual([0, 1, 2, 3].map((i) => raw.readInt16LE(i * 2)), [510, 514, 512, 500]);
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+console.log('효과음 · 절전 설정');
+
+test('기존 설정에 기본 효과음·화면 옵션 적용, 음량 범위와 저장 유지', () => {
+  const legacy = normalizeSettings({ askName: false });
+  assert.strictEqual(legacy.gaugeSound, true);
+  assert.strictEqual(legacy.soundVolume, 35);
+  assert.strictEqual(legacy.keepDisplayAwake, true);
+  assert.strictEqual(normalizeSettings({ soundVolume: -1 }).soundVolume, 0);
+  assert.strictEqual(normalizeSettings({ soundVolume: 101 }).soundVolume, 100);
+  assert.strictEqual(normalizeSettings({ soundVolume: null }).soundVolume, 35);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gauge-settings-'));
+  const s = normalizeSettings({ gaugeSound: false, soundVolume: 17, keepDisplayAwake: false });
+  const store = new Store(dir);
+  store.saveSettings(s);
+  assert.deepStrictEqual(new Store(dir).loadSettings(), s);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('측정 중만 소리 생성, 점수에 따라 음 상승, 중복 발진기 없이 정지·음소거', () => {
+  const contexts = [];
+  const param = () => ({ value: 0, calls: [], setTargetAtTime(v) { this.value = v; this.calls.push(v); }, cancelScheduledValues() {} });
+  const sound = new GaugeSound(() => {
+    const ctx = { currentTime: 0, state: 'running', destination: {}, closed: false, close() { this.closed = true; return Promise.resolve(); } };
+    ctx.oscillators = [];
+    ctx.gain = { gain: param(), connect() {} };
+    ctx.createOscillator = () => {
+      const osc = { frequency: param(), detune: param(), connect() {}, start() {}, stop() { this.stopped = true; } };
+      ctx.oscillators.push(osc);
+      if (!ctx.osc) ctx.osc = osc;
+      return osc;
+    };
+    ctx.createGain = () => ctx.gain;
+    ctx.createBiquadFilter = () => ({ frequency: param(), Q: param(), connect() {} });
+    contexts.push(ctx);
+    return ctx;
+  });
+  sound.update({ active: false, score: 5000 });
+  sound.update({ active: true, score: 0 });
+  assert.strictEqual(contexts.length, 0);
+  sound.update({ active: true, score: 1000 });
+  assert.strictEqual(contexts[0].osc.type, 'sawtooth');
+  assert.strictEqual(contexts[0].oscillators.length, 3);
+  const low = contexts[0].osc.frequency.value;
+  sound.update({ active: true, score: 1001 });
+  assert.ok(contexts[0].osc.frequency.value > low);
+  sound.update({ active: true, score: 8000 });
+  assert.ok(contexts[0].osc.frequency.value > low);
+  const highGain = contexts[0].gain.gain.value;
+  assert.strictEqual(contexts.length, 1);
+  const calls = contexts[0].gain.gain.calls.length;
+  sound.update({ active: true, score: 8000 });
+  assert.strictEqual(contexts[0].gain.gain.calls.length, calls);
+  sound.update({ active: true, score: 0 });
+  assert.strictEqual(contexts[0].gain.gain.value, 0);
+  sound.update({ active: false, score: 8000 });
+  assert.ok(contexts[0].osc.stopped);
+  assert.ok(contexts[0].oscillators.every(osc => osc.stopped));
+  assert.strictEqual(sound.voice, null);
+  sound.update({ active: true, score: 8000, volume: 0 });
+  sound.update({ active: true, score: 8000, enabled: false });
+  assert.strictEqual(contexts.length, 1);
+  sound.update({ active: true, score: 8000, volume: 10 });
+  assert.strictEqual(contexts.length, 2);
+  assert.ok(contexts[1].gain.gain.value < highGain);
+  sound.stop();
+});
+
+test('오디오 장치 생성 실패가 게임으로 전파되거나 무한 재시도되지 않는다', () => {
+  let attempts = 0;
+  const sound = new GaugeSound(() => { attempts++; throw new Error('no audio device'); });
+  sound.update({ active: true, score: 5000 });
+  sound.update({ active: true, score: 6000 });
+  assert.strictEqual(attempts, 1);
+  assert.strictEqual(sound.voice, null);
+});
+
+test('팡파르는 측정 → 결과에서 한 번만, 반복 갱신·초기 결과·음소거 시 재생하지 않는다', () => {
+  const audio = {
+    paused: true, currentTime: 0, volume: 1, plays: 0, loaded: false,
+    load() { this.loaded = true; },
+    play() { this.paused = false; this.plays++; return Promise.resolve(); },
+    pause() { this.paused = true; },
+  };
+  const sound = new GaugeSound(undefined, () => audio);
+  const update = (phase, extra = {}) => sound.update({phase, active:false, score:5000, volume:44, ...extra});
+  assert.ok(audio.loaded);
+  update('result');
+  assert.strictEqual(audio.plays, 0);
+  update('measuring');
+  update('result');
+  assert.strictEqual(audio.plays, 1);
+  assert.strictEqual(audio.volume, 0.44);
+  for (let i = 0; i < 20; i++) update('result');
+  assert.strictEqual(audio.plays, 1);
+  update('result', {volume:20});
+  assert.strictEqual(audio.volume, 0.2);
+  update('measuring');
+  assert.ok(audio.paused);
+  update('result', {volume:0});
+  update('result');
+  assert.strictEqual(audio.plays, 1);
+  update('measuring');
+  update('result', {enabled:false});
+  update('result');
+  assert.strictEqual(audio.plays, 1);
+  update('measuring');
+  sound.stop(); // 화면 숨김 뒤 결과에 복귀해도 뒤늦게 팡파르를 틀지 않는다
+  update('result');
+  assert.strictEqual(audio.plays, 1);
+  update('measuring');
+  update('result');
+  assert.strictEqual(audio.plays, 2);
+  update('result', {enabled:false});
+  assert.ok(audio.paused);
+  assert.strictEqual(audio.currentTime, 0);
 });
 
 console.log(`\n${passed}개 통과`);
