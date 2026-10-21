@@ -1,0 +1,22 @@
+raibitScoreboard 2.1.16 가벼운 전송용
+
+게임·효과음·점수는 기존 최종본과 같습니다. 기준 힘 35 = 3000점, 곡선 0.6, 음량 34%입니다.
+
+Windows: raibitScoreboard-Windows-2.1.16.exe를 더블클릭합니다. 설치가 필요 없습니다.
+Mac M 계열: AppleSilicon ZIP을 Mac에서 압축 해제하고, raibitScoreboard.app을 응용 프로그램(Applications)으로 옮겨 실행합니다.
+Intel Mac: Intel ZIP을 Mac에서 압축 해제하고, raibitScoreboard.app을 응용 프로그램(Applications)으로 옮겨 실행합니다.
+
+통합 ZIP을 풀고 나면 내 기기에 맞는 파일 하나만 사용하세요.
+Mac용 ZIP은 macOS에서 만든 원본이며 실행 권한과 서명을 유지합니다. Windows에서 Mac 앱을 풀었다가 다시 압축하지 마세요.
+Python·Node.js를 따로 설치할 필요가 없습니다. Windows 10/11 x64, macOS 11 이상입니다.
+
+Mac은 Apple 공증이 없어 첫 실행 때 개발자 확인이 필요할 수 있습니다.
+안내: https://support.apple.com/102445
+
+Windows는 Ctrl+D, Mac은 Control+D로 관리자 화면을 엽니다. 실제 센서 사용 시 시뮬레이션은 꺼 두세요.
+새 장소에서는 영점 잡기나 잡음만 보정을 합니다. 기존 설정이 남아 있으면 3페이지에서 함께 제공한 JSON을 가져옵니다.
+3페이지 오른쪽 맨 위에서 소리와 음량을 변경합니다. F11은 전체화면입니다.
+
+이 묶음에서는 중복인 Windows 설치형과 Mac DMG를 제외하고 실행에 필요한 원본만 넣었습니다.
+설치형·DMG가 필요하면 원래 다운로드 페이지에서 받을 수 있습니다.
+https://github.com/juhyun5801/2026ishs02python/releases/tag/festival-v2.1.16
