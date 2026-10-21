@@ -57,16 +57,6 @@ const ZERO_TIMEOUT_MS = 10000;
 const SIM_PORT = '시뮬레이션';
 let lastSaveError = null;
 let lastPayload = '';
-let displayBlocker = null;
-
-function syncDisplaySleep() {
-  const keep = settings.keepDisplayAwake && win && !win.isDestroyed() && !win.isMinimized();
-  if (keep && displayBlocker === null) displayBlocker = powerSaveBlocker.start('prevent-display-sleep');
-  if (!keep && displayBlocker !== null) {
-    powerSaveBlocker.stop(displayBlocker);
-    displayBlocker = null;
-  }
-}
 
 function now() {
   return Date.now();
@@ -153,7 +143,7 @@ function cleanPersonName(name) {
   return s || null;
 }
 
-const EXPORT_KEYS = ['score', 'askName', 'emg', 'gaugeSound', 'soundVolume']; // 화면 꺼짐 방지·포트·전체화면은 노트북별 설정
+const EXPORT_KEYS = ['score', 'askName', 'emg', 'gaugeSound', 'soundVolume']; // 포트 역할·전체화면은 노트북마다 다르므로 빼고, 영점은 가져올 때 지금 값을 쓴다
 
 function push(force) {
   if (!win || win.isDestroyed()) return;
@@ -169,7 +159,6 @@ function isFullscreen() {
 }
 
 function saveSettings() {
-  syncDisplaySleep();
   try {
     store.saveSettings(settings);
     lastSaveError = null;
@@ -219,7 +208,7 @@ function createWindow(full) {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      autoplayPolicy: 'no-user-gesture-required', // 아두이노 START 로 시작해도 효과음을 재생
+      autoplayPolicy: 'no-user-gesture-required', // 외부 START 신호로 시작한 측정도 소리 재생
     },
   });
   win.once('ready-to-show', () => {
@@ -231,9 +220,7 @@ function createWindow(full) {
   // macOS 초록 버튼 등으로 바뀐 경우도 화면에 반영
   win.on('enter-full-screen', () => push());
   win.on('leave-full-screen', () => push());
-  win.on('minimize', syncDisplaySleep);
-  win.on('restore', syncDisplaySleep);
-  win.on('closed', () => { win = null; syncDisplaySleep(); });
+  win.on('closed', () => { win = null; });
 }
 
 function setupMenu() {
@@ -436,7 +423,7 @@ app.whenReady().then(() => {
     if (autocal.running && frames) autocal.addFrames(frames, rate);
     emgFilter.configure(rate, settings.emg);
     emgWin.add(emgFilter.process(values));
-    if (diagOn || recorder.on) rawWin.add(values);
+    rawWin.add(values);
     lastRaw = values[values.length - 1];
     diag.addSamples(values, now());
     recorder.addSamples(values);
@@ -480,7 +467,7 @@ app.whenReady().then(() => {
   // 시간 흐름(측정 제한 8초)과 연결 상태 갱신
   setInterval(() => { game.tick(now()); push(); }, 50);
 
-  syncDisplaySleep();
+  powerSaveBlocker.start('prevent-display-sleep');
   console.log('[main] 데이터 폴더:', store.dir);
 });
 

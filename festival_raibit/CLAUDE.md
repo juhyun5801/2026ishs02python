@@ -2,17 +2,13 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Current status: v2.1.14
+## Current status: v2.1.15
 
-2.1.14 applies the user's selected motor charge + score fanfare. GaugeSound reuses three oscillators (sawtooth carrier, weak detuned square, rotor AM) through a low-pass filter; pitch/rotor/cutoff follow current score. `phase` is passed to update: only measuring → result plays the preloaded local `src/renderer/sounds/score-fanfare.wav`, once. Both use the existing sound toggle and volume; result sound stops on mute, new measurement, hidden page or unload. No late fanfare on initial/returned result, no fanfare on stop/disconnect alone. 56 unit tests pass; Electron runtime confirms motor samples, a 1.85 s fanfare playing once at result, live volume and mute, plus existing pages/settings tests. The fanfare file is byte-identical to the approved chat sample.
+User requested restoring the original game and keeping sound only. Sensor/filter/scoring/calibration/UI animation logic is restored to the 26acf96 baseline. Only computer-speaker motor charge + local result fanfare and sound enable/volume controls remain; no display-sleep option, rendering optimization, raw-RMS optimization or source-selection changes. The current preview profile reference force is adjusted from 31 to 35 at the user's request for slightly lower scores; the scoring formula/defaults are unchanged. Launch the user-facing hardware preview WITHOUT --sim. Keep records, calibration and volume intact. Windows/Mac packaging scripts and workflow remain.
 
-2.1.13 changes the charge sound to a square-wave digital game tone. Frequency is quantized to the same 15 levels as the gauge (220 Hz × 2^(level/6)); the amplitude is reduced to balance the square wave. The chat audition WAV is rendered from the actual GaugeSound code through OfflineAudioContext. Unit tests verify waveform and same-level pitch stability.
+Local task target is juhyun5801/2026ishs02python, subdirectory festival_raibit. Historical canonical push instructions below do not apply here. User has authorized uploading changes and running the Mac build.
 
-2.1.12 moves gauge charge sound/volume/display controls to the top of admin page 3 and saves those controls immediately (volume writes only on change, not each drag input). Measurement audio now works on admin pages as well, using current measured score there instead of the paused audience animation. Only idle/result/disconnect/hidden/mute/unload stop audio. Runtime checks verify the option is visible without scrolling and an admin-initiated measurement generates audio.
-
-Local task target: `juhyun5801/2026ishs02python`, subdirectory `festival_raibit/`. The current user requested editing this copy. Do not follow the historical canonical push instructions below for this task.
-
-2.1.11 adds computer-speaker gauge audio (one Web Audio oscillator per measurement, default volume 35%; `gaugeSound`/`soundVolume`) and `keepDisplayAwake` (default true; releases the display blocker when minimized). Admin page 3 exposes these options; no preview button. GaugeSound stops on result, idle, disconnect, admin, hidden page, mute or unload. External Arduino input remains `START`/`ALIVE`; no wiring/firmware changes. Audience layout is reused between state updates; gauge DOM only updates on level changes; the number RAF stops at its target. Raw RMS only runs during diagnostics/recording; scoring input/filtering stays warm. The diagnostic renderer now defines its settings and point-count locals (`set`/`nPts`). 55 unit tests and actual Electron simulation pass (pages 1/2/3, settings persistence, display blocker, audio samples, mute, disconnect and result cleanup). Real hardware power consumption is unmeasured.
+### Original v2.1.10 status
 
 The v1→v2 migration (2-player Arduino contest → 1-player record mode fed by a SpikerBox) is code-complete and documented in `PLAN.md` (Phases 1–4 and checklist steps 1–10 done). **Step 11, the on-site hardware test, is partly done**: real SpikerBox/EMG scoring after 자동 보정 on the event laptop was confirmed by the user (2026-10-21). Still open: macOS 222222 baud, START Arduino (including the name prompt it triggers), Windows exe. Update PLAN.md first if that testing changes a decision.
 

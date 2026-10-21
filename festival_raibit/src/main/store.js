@@ -12,7 +12,6 @@ const DEFAULT_SETTINGS = {
   askName: true, // START 전에 도전자 이름을 받는다 (이름 없이 Enter 면 ㅇㅇㅇ)
   gaugeSound: true,
   soundVolume: 35,
-  keepDisplayAwake: true,
   // SpikerBox 채널(1|2), 휴식 RMS(영점, 거른 신호 기준), 영점 위 여유, 전원 주파수, 노치 사용, 고역 통과 Hz (0 = 끄기)
   emg: { channel: 1, restRms: 0, filtered: true, margin: 1.5, mainsHz: 60, notch: true, highpassHz: 80 },
   portRoles: {}, // { [path]: 'spikerbox' | 'start' }, 없는 path는 자동 판별
@@ -96,7 +95,6 @@ function normalizeSettings(raw) {
     askName: typeof s.askName === 'boolean' ? s.askName : DEFAULT_SETTINGS.askName,
     gaugeSound: typeof s.gaugeSound === 'boolean' ? s.gaugeSound : DEFAULT_SETTINGS.gaugeSound,
     soundVolume: s.soundVolume == null ? DEFAULT_SETTINGS.soundVolume : clampNum(s.soundVolume, 0, 100, DEFAULT_SETTINGS.soundVolume),
-    keepDisplayAwake: typeof s.keepDisplayAwake === 'boolean' ? s.keepDisplayAwake : DEFAULT_SETTINGS.keepDisplayAwake,
     emg: {
       channel: Number(emg.channel) === 2 ? 2 : 1,
       restRms: old ? 0 : clampNum(emg.restRms, 0, 100000, 0),

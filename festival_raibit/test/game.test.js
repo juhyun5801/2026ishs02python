@@ -294,7 +294,7 @@ test('v2.0.x 파일 옮기기: 명예의 전당 이름은 살리고, 나머지 �
 console.log('저장');
 
 const DEFAULTS = {
-  score: DEFAULT_SCORE, askName: true, gaugeSound: true, soundVolume: 35, keepDisplayAwake: true,
+  score: DEFAULT_SCORE, askName: true, gaugeSound: true, soundVolume: 35,
   emg: { channel: 1, restRms: 0, filtered: true, margin: 1.5, mainsHz: 60, notch: true, highpassHz: 80 }, portRoles: {}, fullscreen: true,
 };
 
@@ -869,18 +869,17 @@ test('녹화: 100 ms 구간마다 CSV 한 줄, 원시값은 .raw 에 이어 쓰�
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-console.log('효과음 · 절전 설정');
+console.log('효과음 설정');
 
-test('기존 설정에 기본 효과음·화면 옵션 적용, 음량 범위와 저장 유지', () => {
+test('기존 설정에 기본 효과음 옵션 적용, 음량 범위와 저장 유지', () => {
   const legacy = normalizeSettings({ askName: false });
   assert.strictEqual(legacy.gaugeSound, true);
   assert.strictEqual(legacy.soundVolume, 35);
-  assert.strictEqual(legacy.keepDisplayAwake, true);
   assert.strictEqual(normalizeSettings({ soundVolume: -1 }).soundVolume, 0);
   assert.strictEqual(normalizeSettings({ soundVolume: 101 }).soundVolume, 100);
   assert.strictEqual(normalizeSettings({ soundVolume: null }).soundVolume, 35);
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gauge-settings-'));
-  const s = normalizeSettings({ gaugeSound: false, soundVolume: 17, keepDisplayAwake: false });
+  const s = normalizeSettings({ gaugeSound: false, soundVolume: 17 });
   const store = new Store(dir);
   store.saveSettings(s);
   assert.deepStrictEqual(new Store(dir).loadSettings(), s);
