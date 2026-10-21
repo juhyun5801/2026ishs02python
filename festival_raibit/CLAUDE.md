@@ -2,7 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Current status: v2.1.15
+## Current status: v2.1.16
+
+Final distributable defaults: reference force 35 = 3000 points, curve 0.6, sound enabled at 34%. DefaultScore/reset and renderer fallbacks match. Preserve any explicitly saved settings. Original sensor/filter/measurement algorithms remain unchanged. The diagnostic renderer retains its two missing local declarations so page 2 works. Unit tests cover fresh-device settings; packaged-app smoke tests cover all three pages, native first launch (simulation off), included fanfare and saved sound controls. Mac CI also exercises a simulated measurement only on sensor-free CI hosts.
 
 User requested restoring the original game and keeping sound only. Sensor/filter/scoring/calibration/UI animation logic is restored to the 26acf96 baseline. Only computer-speaker motor charge + local result fanfare and sound enable/volume controls remain; no display-sleep option, rendering optimization, raw-RMS optimization or source-selection changes. The current preview profile reference force is adjusted from 31 to 35 at the user's request for slightly lower scores; the scoring formula/defaults are unchanged. Launch the user-facing hardware preview WITHOUT --sim. Keep records, calibration and volume intact. Windows/Mac packaging scripts and workflow remain.
 

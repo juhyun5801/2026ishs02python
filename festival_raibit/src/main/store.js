@@ -11,7 +11,7 @@ const DEFAULT_SETTINGS = {
   score: defaultScore(),
   askName: true, // START 전에 도전자 이름을 받는다 (이름 없이 Enter 면 ㅇㅇㅇ)
   gaugeSound: true,
-  soundVolume: 35,
+  soundVolume: 34,
   // SpikerBox 채널(1|2), 휴식 RMS(영점, 거른 신호 기준), 영점 위 여유, 전원 주파수, 노치 사용, 고역 통과 Hz (0 = 끄기)
   emg: { channel: 1, restRms: 0, filtered: true, margin: 1.5, mainsHz: 60, notch: true, highpassHz: 80 },
   portRoles: {}, // { [path]: 'spikerbox' | 'start' }, 없는 path는 자동 판별

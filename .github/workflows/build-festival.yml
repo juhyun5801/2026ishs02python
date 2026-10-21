@@ -39,6 +39,10 @@ jobs:
         run: npm test
       - name: Package Mac app
         run: node scripts/build-mac.cjs --${{ matrix.arch }}
+      - name: Test packaged Mac app
+        run: |
+          if [ '${{ matrix.arch }}' = 'arm64' ]; then APP='dist/mac-arm64'; else APP='dist/mac'; fi
+          node scripts/smoke-desktop.cjs "$APP/raibitScoreboard.app/Contents/MacOS/raibitScoreboard" --exercise
       - name: Check native dependencies and included fanfare
         run: |
           node -e "const hid=require('node-hid'); const serial=require('serialport'); console.log('Native modules loaded:', process.platform, process.arch); if(!hid.HID || !serial.SerialPort)process.exit(1)"

@@ -515,6 +515,8 @@
 
   function renderDiag() {
     var d = state.diag;
+    var set = state.settings || {};
+    var nPts = set.score && Array.isArray(set.score.points) ? set.score.points.length : 0;
     $('diag-version').textContent = state.version ? 'v' + state.version : '';
     if (!d) return;
     var sig = d.signal, ser = d.serial, ps = state.ports || {}, sb = ps.spikerbox || {}, st = ps.start || {};
@@ -753,7 +755,7 @@
   // ───────────────────────── 관리자 3페이지: 설정 ─────────────────────────
   // 입력칸은 페이지를 열 때와 저장한 뒤에만 채운다 (0.05초마다 오는 상태로 덮어쓰지 않게)
   // 점수 초안 sc: ref = 기준 힘(세기), top = 곡선으로 만들 때 100% 점수, curve = 곡선 지수(직접 고치면 null), points = [[%, 점수]]
-  var sc = { ref: 31, top: 7000, curve: 0.6, points: [] };
+  var sc = { ref: 35, top: 3000, curve: 0.6, points: [] };
   var rowsOpen = false;
   var lastZeroing = false;
   var CURVE_PCTS = [0, 2.5, 5, 10, 20, 35, 50, 70, 100, 130, 160, 200, 260, 340];
@@ -767,7 +769,7 @@
 
   // game.js curvePoints 와 같다 (같이 고칠 것)
   function curvePoints(k, top) {
-    var t = Math.max(1, Math.min(MAX_SCORE, top || 7000));
+    var t = Math.max(1, Math.min(MAX_SCORE, top || 3000));
     var pmax = 100 * Math.pow(MAX_SCORE / t, 1 / k);
     var pts = CURVE_PCTS.filter(function (p) { return p < pmax - 0.5; }).map(function (p) { return [p, Math.round(t * Math.pow(p / 100, k))]; });
     pts.push([Math.round(pmax * 10) / 10, MAX_SCORE]);
@@ -1000,7 +1002,7 @@
     if (!(isFinite(v) && v >= 1 && v <= MAX_SCORE)) return;
     v = Math.round(v);
     if (sc.curve != null) sc.points = curvePoints(sc.curve, v);
-    else { var k = v / (sc.top || 7000); sc.points = sc.points.map(function (p) { return [p[0], Math.min(MAX_SCORE, Math.round(p[1] * k))]; }); }
+    else { var k = v / (sc.top || 3000); sc.points = sc.points.map(function (p) { return [p[0], Math.min(MAX_SCORE, Math.round(p[1] * k))]; }); }
     sc.top = v;
     renderScoreEditor();
   });

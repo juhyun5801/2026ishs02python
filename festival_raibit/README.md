@@ -1,6 +1,10 @@
 # raibitScoreboard — 근전도 기록 측정
 
-## v2.1.15 — 원래 게임 + 선택한 소리
+## v2.1.16 — 최종 Windows / Mac 배포
+
+새 기기의 기본 점수는 **기준 힘 35 = 3000점**, 곡선 0.6입니다. 기계음·결과 팡파르를 포함하며 음량은 34%입니다. 기존 기기에 저장한 설정은 그대로 유지됩니다. 이전 설정이 남아 있으면 함께 제공한 점수 설정 JSON을 3페이지에서 가져오면 됩니다.
+
+Windows x64 실행 파일, Mac Apple Silicon/Intel용 DMG와 통합 전송 ZIP을 제공합니다. Python·Node.js 설치 없이 실행할 수 있습니다. 자세한 실행 순서는 [배포 사용 안내](DISTRIBUTION.md)를 보세요.
 
 원본 게임의 센서·필터·점수·보정·화면 동작을 복구했습니다. 소리 기능만 추가했습니다. 측정 중 점수에 따라 기계음이 높아지고, 결과가 나오면 선택한 팡파르를 한 번 재생합니다.
 
@@ -63,7 +67,7 @@ npm run build:mac   # dist/ 에 macOS용 .dmg (Apple Silicon / Intel 각각)
 
 - 두 빌드 모두 macOS에서 만들 수 있습니다. Windows에서는 `build:win`만 됩니다.
 - serialport는 미리 빌드된 바이너리(N-API)를 쓰므로 Python, Visual Studio, Xcode 같은 컴파일 도구가 필요 없습니다.
-- 코드 서명은 하지 않았습니다. macOS에서 처음 열 때 "확인되지 않은 개발자" 경고가 나오면 앱을 **우클릭 → 열기**로 엽니다. Windows SmartScreen 경고가 나오면 "추가 정보 → 실행"을 누릅니다.
+- Windows 개발자 인증서와 Apple Developer 공증은 포함하지 않습니다. Mac 앱은 로컬 무계정 서명이며, 최초 실행 시 [Apple 안내](https://support.apple.com/102445)의 실행 확인 절차가 필요할 수 있습니다.
 
 ## 측정 흐름
 

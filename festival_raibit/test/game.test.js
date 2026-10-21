@@ -294,7 +294,7 @@ test('v2.0.x 파일 옮기기: 명예의 전당 이름은 살리고, 나머지 �
 console.log('저장');
 
 const DEFAULTS = {
-  score: DEFAULT_SCORE, askName: true, gaugeSound: true, soundVolume: 35,
+  score: DEFAULT_SCORE, askName: true, gaugeSound: true, soundVolume: 34,
   emg: { channel: 1, restRms: 0, filtered: true, margin: 1.5, mainsHz: 60, notch: true, highpassHz: 80 }, portRoles: {}, fullscreen: true,
 };
 
@@ -360,7 +360,7 @@ test('점수표: 구간마다 직선, 첫 점 아래는 0 에서, 마지막 점 
   assert.strictEqual(scoreFromTable(2, [[4, 800], [8, 900]]), 400);
   assert.deepStrictEqual(cleanScoreTable([[20, 99999], ['x', 1], [5, 100], [5, 200], [0, -4]]), [[0, 0], [5, 100], [20, 9999]]);
   assert.strictEqual(cleanScoreTable([[1, 1]]), null);
-  assert.strictEqual(scoreOf(31, {}), 7000); // 설정이 없으면 기본 (기준 힘 31 = 7000점)
+  assert.strictEqual(scoreOf(35, {}), 3000); // 새 기기의 최종 기본값
   const { g } = makeGame({ score: { ref: 20, points: [[0, 0], [50, 1000], [100, 5000]] } });
   g.start(0);
   g.sample('p1', 15, 100); // 15 = 기준 20 의 75%
@@ -368,12 +368,13 @@ test('점수표: 구간마다 직선, 첫 점 아래는 0 에서, 마지막 점 
   assert.strictEqual(pctOf(15, { ref: 20 }), 75);
 });
 
-test('점수 곡선 점: 기준 힘(100%) = top, 9999 에 닿는 곳에서 끝, 기본은 2.1.8 표와 거의 같다', () => {
+test('점수 곡선 점: 기준 힘(100%) = top, 9999 에 닿는 곳에서 끝, 예전 명시적 곡선 유지', () => {
   const pts = curvePoints(1, 5000);
   assert.deepStrictEqual(pts[pts.length - 1], [200, 9999]);
   assert.strictEqual(scoreFromTable(100, pts), 5000);
   assert.strictEqual(scoreFromTable(50, curvePoints(0.6, 7000)), Math.round(7000 * Math.pow(0.5, 0.6)));
-  DEFAULT_SCORE_TABLE.forEach(([st, v]) => assert.ok(Math.abs(scoreOf(st, {}) - v) <= 80, st + ': ' + scoreOf(st, {}) + ' vs ' + v));
+  const legacy = { score: { ref: 31, points: curvePoints(0.6, 7000) } };
+  DEFAULT_SCORE_TABLE.forEach(([st, v]) => assert.ok(Math.abs(scoreOf(st, legacy) - v) <= 80, st + ': ' + scoreOf(st, legacy) + ' vs ' + v));
   assert.strictEqual(cleanScore({ ref: 0, points: pts }), null);
   assert.deepStrictEqual(cleanScore({ ref: 30, curve: 0.8, top: 6000 }).points, curvePoints(0.8, 6000)); // 점이 없으면 곡선으로 만든다
   assert.strictEqual(scoreFromLegacyTable([[0, 0], [10, 2000]]).ref, 10); // 7000 에 못 미치면 마지막 점이 기준
@@ -871,13 +872,26 @@ test('녹화: 100 ms 구간마다 CSV 한 줄, 원시값은 .raw 에 이어 쓰�
 
 console.log('효과음 설정');
 
+test('최종 배포 첫 실행: 기준 힘 35 = 3000점, 설정 재실행 유지, 기록 없음', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'release-defaults-'));
+  const store = new Store(dir);
+  const s = store.loadSettings();
+  assert.deepStrictEqual([s.score.ref, s.score.top, s.score.curve, s.soundVolume], [35, 3000, 0.6, 34]);
+  assert.strictEqual(scoreOf(35, s), 3000);
+  assert.strictEqual(scoreOf(17.5, s), 1979);
+  assert.strictEqual(scoreOf(0, s), 0);
+  assert.deepStrictEqual(new Store(dir).loadSettings(), s);
+  assert.strictEqual(store.loadRecords(), null);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
 test('기존 설정에 기본 효과음 옵션 적용, 음량 범위와 저장 유지', () => {
   const legacy = normalizeSettings({ askName: false });
   assert.strictEqual(legacy.gaugeSound, true);
-  assert.strictEqual(legacy.soundVolume, 35);
+  assert.strictEqual(legacy.soundVolume, 34);
   assert.strictEqual(normalizeSettings({ soundVolume: -1 }).soundVolume, 0);
   assert.strictEqual(normalizeSettings({ soundVolume: 101 }).soundVolume, 100);
-  assert.strictEqual(normalizeSettings({ soundVolume: null }).soundVolume, 35);
+  assert.strictEqual(normalizeSettings({ soundVolume: null }).soundVolume, 34);
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gauge-settings-'));
   const s = normalizeSettings({ gaugeSound: false, soundVolume: 17 });
   const store = new Store(dir);
