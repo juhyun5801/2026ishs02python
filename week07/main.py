@@ -1,0 +1,20 @@
+import seaborn as sns
+
+df = sns.load_dataset('titanic')
+print(df.head())
+print(df.info())
+print(df.tail())
+print(df.describe())
+
+print(df['survived'].value_counts() )
+print(df['alive'].value_counts() )
+print(df['embark_town'].value_counts() )
+print(df['embarked'].value_counts() )
+print(df['pclass'].value_counts() )
+print(df['class'].value_counts() )
+df1 = df.drop(labels=['alive', 'class', 'embarked'], axis=1)
+print(df1.info())
+print(df.groupby('sex')['survived'].mean())
+print(df1.groupby(['sex', 'pclass'])['survived'].mean())
+print(df.groupby(['sex','pclass'])['survived'].agg(['mean','median','count']))
+print(df.groupby(['sex','pclass'])[['survived','age']].agg({'survived':'mean', 'age':'max'}))
